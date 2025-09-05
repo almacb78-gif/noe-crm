@@ -1,0 +1,43 @@
+services:
+  # Service Backend (Flask)
+  - type: web
+    name: noe-crm-backend
+    env: python
+    region: frankfurt
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn --chdir app app:app"
+    envVars:
+      - key: DATABASE_URL
+        value: "sqlite:///./instance/noe_crm.db"
+      - key: FLASK_APP
+        value: app
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+
+  # Service Frontend (React Static Site)
+  - type: static
+    name: noe-crm-frontend
+    region: frankfurt
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    publishDir: dist
+
+  # Service Proxy (Nginx)
+  - type: web
+    name: noe-crm-proxy
+    env: docker
+    region: frankfurt
+    rootDir: proxy
+    dockerfilePath: ./Dockerfile
+    plan: free
+    httpProxy:
+      rewrites:
+        - source: /app
+          destination: https://noe-crm-frontend.onrender.com
+        - source: /app/*
+          destination: https://noe-crm-frontend.onrender.com/*
+        - source: /api/*
+          destination: https://noe-crm-backend.onrender.com/api/*
