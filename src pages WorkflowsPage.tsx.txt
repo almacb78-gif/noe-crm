@@ -1,0 +1,140 @@
+import React, { useState, useRef, useCallback } from 'react';
+import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
+
+interface Node {
+  id: string;
+  type: string;
+  content: string;
+  position: { x: number; y: number };
+}
+
+const SIDEBAR_NODE_TYPES = [
+  { type: 'trigger', content: 'Déclencheur : Nouveau Contact' },
+  { type: 'action', content: 'Action : Envoyer un E-mail' },
+  { type: 'condition', content: 'Condition : Si le pays est...' },
+  { type: 'logic', content: 'Logique : Attendre 2 jours' },
+];
+
+const NodeCard = React.forwardRef<HTMLDivElement, { children: React.ReactNode, isOverlay?: boolean }>(({ children, isOverlay, ...props }, ref) => (
+  <div 
+    ref={ref}
+    {...props}
+    className={`p-4 rounded-lg shadow-md cursor-grab bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 ${isOverlay ? 'shadow-xl' : ''}`}
+  >
+    {children}
+  </div>
+));
+
+function DraggableSidebarNode({ type, content }: { type: string, content: string }) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: `sidebar-${type}`,
+    data: { isSidebarNode: true, type, content },
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="mb-4">
+      <NodeCard>{content}</NodeCard>
+    </div>
+  );
+}
+
+function CanvasNode({ node, isDragging }: { node: Node, isDragging: boolean }) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: node.id,
+    data: { isCanvasNode: true },
+  });
+
+  const style = transform ? {
+    position: 'absolute' as const,
+    left: `${node.position.x + transform.x}px`,
+    top: `${node.position.y + transform.y}px`,
+    transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+    zIndex: isDragging ? 100 : 10,
+  } : {
+    position: 'absolute' as const,
+    left: `${node.position.x}px`,
+    top: `${node.position.y}px`,
+    zIndex: 10,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      <NodeCard isOverlay={isDragging}>{node.content}</NodeCard>
+    </div>
+  );
+}
+
+export default function WorkflowsPage() {
+  const [canvasNodes, setCanvasNodes] = useState<Node[]>([]);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  const { setNodeRef: setCanvasRef } = useDroppable({ id: 'canvas' });
+
+  const handleDragStart = (event: any) => {
+    setActiveDragId(event.active.id);
+  };
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over, delta } = event;
+    setActiveDragId(null);
+    if (!over || over.id !== 'canvas') {
+      return;
+    }
+
+    if (active.data.current?.isSidebarNode) {
+      if (!canvasRef.current) return;
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const dropPosition = {
+        x: event.activatorEvent.clientX - canvasRect.left,
+        y: event.activatorEvent.clientY - canvasRect.top,
+      };
+
+      const newNode: Node = {
+        id: `node-${Date.now()}`,
+        type: active.data.current.type,
+        content: active.data.current.content,
+        position: dropPosition,
+      };
+      setCanvasNodes((nodes) => [...nodes, newNode]);
+    } else if (active.data.current?.isCanvasNode) {
+      setCanvasNodes((nodes) =>
+        nodes.map((node) =>
+          node.id === active.id
+            ? {
+                ...node,
+                position: {
+                  x: node.position.x + delta.x,
+                  y: node.position.y + delta.y,
+                },
+              }
+            : node
+        )
+      );
+    }
+  }, []);
+
+  return (
+    <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+      <div className="flex h-full">
+        <aside className="w-72 flex-shrink-0 bg-gray-100 dark:bg-gray-800 p-4 overflow-y-auto border-r border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Nœuds</h3>
+          {SIDEBAR_NODE_TYPES.map((node) => (
+            <DraggableSidebarNode key={node.type} type={node.type} content={node.content} />
+          ))}
+        </aside>
+        <div ref={setCanvasRef} className="flex-1 h-full relative overflow-auto bg-gray-50 dark:bg-gray-900" >
+          <div ref={canvasRef} className="absolute inset-0">
+            {canvasNodes.map((node) => (
+              <CanvasNode key={node.id} node={node} isDragging={activeDragId === node.id} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </DndContext>
+  );
+}

@@ -1,0 +1,47 @@
+import { Route, Routes } from 'react-router-dom'
+import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/DashboardPage'
+import MainLayout from './layouts/MainLayout'
+import RegisterPage from './pages/RegisterPage'
+import PasswordRecoveryPage from './pages/PasswordRecoveryPage'
+import ContactsPage from './pages/ContactsPage'
+import AddContactPage from './pages/AddContactPage'
+import ContactDetailPage from './pages/ContactDetailPage'
+import EditContactPage from './pages/EditContactPage'
+import AccountsPage from './pages/AccountsPage'
+import AddAccountPage from './pages/AddAccountPage'
+import EditAccountPage from './pages/EditAccountPage'
+import OpportunitiesPage from './pages/OpportunitiesPage'
+import CalendarPage from './pages/CalendarPage'
+import TasksPage from './pages/TasksPage'
+import NotesPage from './pages/NotesPage'
+import SettingsPage from './pages/SettingsPage'
+import WorkflowsPage from './pages/WorkflowsPage'
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/recover-password" element={<PasswordRecoveryPage />} />
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/contacts" element={<ContactsPage />} />
+        <Route path="/contacts/add" element={<AddContactPage />} />
+        <Route path="/contacts/:id" element={<ContactDetailPage />} />
+        <Route path="/contacts/:id/edit" element={<EditContactPage />} />
+        <Route path="/accounts" element={<AccountsPage />} />
+        <Route path="/accounts/add" element={<AddAccountPage />} />
+        <Route path="/accounts/:id/edit" element={<EditAccountPage />} />
+        <Route path="/opportunities" element={<OpportunitiesPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/notes" element={<NotesPage />} />
+        <Route path="/workflows" element={<WorkflowsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
+    </Routes>
+  )
+}
+
+export default App
